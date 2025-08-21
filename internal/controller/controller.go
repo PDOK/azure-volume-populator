@@ -29,18 +29,14 @@ func RunController(masterURL string, kubeconfig string, imageName string, httpEn
 		namespace, prefix, gk, gvr, mountPath, devicePath, getPopulatorPodArgs)
 }
 
-func getPopulatorPodArgs(rawBlock bool, u *unstructured.Unstructured) ([]string, error) {
-	var hello api.Hello
-	err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), &hello)
+func getPopulatorPodArgs(_ bool, u *unstructured.Unstructured) ([]string, error) {
+	var azure api.AzureVolumePopulator
+	err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), &azure)
 	if nil != err {
 		return nil, err
 	}
 	args := []string{"--mode=populate"}
-	if rawBlock {
-		args = append(args, "--file-name="+devicePath)
-	} else {
-		args = append(args, "--file-name="+mountPath+"/"+hello.Spec.FileName)
-	}
-	args = append(args, "--file-contents="+hello.Spec.FileContents)
+	args = append(args, "--volume-path="+mountPath+"/"+azure.Spec.VolumePath)
+	args = append(args, "--blob-prefix="+azure.Spec.BlobPrefix)
 	return args, nil
 }

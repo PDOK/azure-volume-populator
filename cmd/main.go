@@ -15,8 +15,8 @@ var version = "unknown"
 func main() {
 	var (
 		mode         string
-		fileName     string
-		fileContents string
+		blobPrefix   string
+		volumePath   string
 		httpEndpoint string
 		metricsPath  string
 		masterURL    string
@@ -29,8 +29,8 @@ func main() {
 	// Main arg
 	flag.StringVar(&mode, "mode", "", "Mode to run in (controller, populate)")
 	// Populate args
-	flag.StringVar(&fileName, "file-name", "", "File name to populate")
-	flag.StringVar(&fileContents, "file-contents", "", "Contents to populate file with")
+	flag.StringVar(&blobPrefix, "blob-prefix", "", "Copy all Azure blobs with this prefix")
+	flag.StringVar(&volumePath, "volume-path", "", "Destination path on the volume")
 	// Controller args
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
@@ -48,11 +48,14 @@ func main() {
 		os.Exit(0)
 	}
 
+	if mode == "" {
+		klog.Fatalf("Missing required arg: --mode")
+	}
 	switch mode {
 	case "controller":
 		controller.RunController(masterURL, kubeconfig, imageName, httpEndpoint, metricsPath, namespace)
 	case "populate":
-		populator.Populate(fileName, fileContents)
+		populator.Populate(blobPrefix, volumePath)
 	default:
 		klog.Fatalf("Invalid mode: %s", mode)
 	}
