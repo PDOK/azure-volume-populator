@@ -1,0 +1,58 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: azurevolumepopulators.volume.pdok.nl
+spec:
+  group: volume.pdok.nl
+  names:
+    categories:
+    - pdok
+    kind: AzureVolumePopulator
+    listKind: AzureVolumePopulatorList
+    plural: azurevolumepopulators
+    singular: azurevolumepopulator
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: AzureVolumePopulatorSpec specification of an Azure storage
+              account resource
+            properties:
+              blobPrefix:
+                description: Copy all blobs with this prefix
+                type: string
+              volumePath:
+                description: Destination path on the volume
+                type: string
+            required:
+            - blobPrefix
+            - volumePath
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true

@@ -6,6 +6,7 @@ require (
 	github.com/kubernetes-csi/lib-volume-populator v1.2.1-0.20250505175558-d7d8bea1fc81
 	k8s.io/apimachinery v0.33.4
 	k8s.io/klog/v2 v2.130.1
+	sigs.k8s.io/controller-runtime v0.21.0
 )
 
 require (

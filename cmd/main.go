@@ -40,7 +40,7 @@ func main() {
 	flag.StringVar(&metricsPath, "metrics-path", "/metrics", "The HTTP path where prometheus metrics will be exposed. Default is `/metrics`.")
 	// Other args
 	flag.BoolVar(&showVersion, "version", false, "display the version string")
-	flag.StringVar(&namespace, "namespace", "hello", "Namespace to deploy controller")
+	flag.StringVar(&namespace, "namespace", "", "Namespace to deploy controller")
 	flag.Parse()
 
 	if showVersion {
@@ -53,7 +53,7 @@ func main() {
 	}
 	switch mode {
 	case "controller":
-		controller.RunController(masterURL, kubeconfig, imageName, httpEndpoint, metricsPath, namespace)
+		controller.Run(masterURL, kubeconfig, imageName, httpEndpoint, metricsPath, namespace)
 	case "populate":
 		populator.Populate(blobPrefix, volumePath)
 	default:
