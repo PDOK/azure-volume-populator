@@ -1,4 +1,7 @@
 //go:generate ../../hack/generate-crd.sh
+
+// +kubebuilder:object:generate=true
+// +groupName=volume.pdok.nl
 package v1alpha1
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,8 +32,4 @@ type AzureVolumePopulatorList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []AzureVolumePopulator `json:"items"`
-}
-
-func init() {
-	SchemeBuilder.Register(&AzureVolumePopulator{}, &AzureVolumePopulatorList{})
 }
