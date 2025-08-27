@@ -19,6 +19,7 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
+        description: AzureVolumePopulator is the Schema for the AzureVolumePopulatorSpec
         properties:
           apiVersion:
             description: |-
@@ -41,6 +42,21 @@ spec:
             description: AzureVolumePopulatorSpec specification of an Azure storage
               account resource
             properties:
+              blobDownloadOptions:
+                description: Advanced settings to tune download behavior from Azure
+                  Blob Storage
+                properties:
+                  blockSize:
+                    default: 4194304
+                    description: The maximum chunk size used for downloading a blob.
+                      Defaults to 4MiB
+                    type: integer
+                  concurrency:
+                    default: 5
+                    description: The maximum number of subtransfers that can be used
+                      in parallel. Defaults to 5.
+                    type: integer
+                type: object
               blobPrefix:
                 description: Copy all blobs with this prefix
                 type: string

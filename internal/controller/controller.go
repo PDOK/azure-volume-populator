@@ -18,27 +18,34 @@ const (
 	resource   = "azurevolumepopulators"
 )
 
-func Run(masterURL string, kubeconfig string, imageName string,
-	httpEndpoint string, metricsPath string, namespace string) {
+var (
+	gk  = schema.GroupKind{Group: groupName, Kind: kind}
+	gvr = schema.GroupVersionResource{Group: groupName, Version: apiVersion, Resource: resource}
+)
 
-	gk := schema.GroupKind{Group: groupName, Kind: kind}
-	gvr := schema.GroupVersionResource{Group: groupName, Version: apiVersion, Resource: resource}
+func Run(masterURL string, kubeconfig string, imageName string,
+	httpEndpoint string, metricsPath string, namespace string,
+	azConnectionString string) {
+
 	populatorMachinery.RunController(masterURL, kubeconfig, imageName, httpEndpoint, metricsPath,
-		namespace, groupName, gk, gvr, mountPath, devicePath, getPopulatorPodArgs)
+		namespace, groupName, gk, gvr, mountPath, devicePath, makePopulatorArgs(azConnectionString))
 }
 
-func getPopulatorPodArgs(rawBlock bool, u *unstructured.Unstructured) ([]string, error) {
-	var azure v1alpha1.AzureVolumePopulator
-	err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), &azure)
-	if nil != err {
-		return nil, err
+func makePopulatorArgs(azConnectionString string) func(bool, *unstructured.Unstructured) ([]string, error) {
+	return func(rawBlock bool, u *unstructured.Unstructured) ([]string, error) {
+		var azure v1alpha1.AzureVolumePopulator
+		err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), &azure)
+		if nil != err {
+			return nil, err
+		}
+		args := []string{"--mode=populate"}
+		args = append(args, "--azure-storage-connection-string="+azConnectionString)
+		args = append(args, "--blob-prefix="+azure.Spec.BlobPrefix)
+		if rawBlock {
+			args = append(args, "--volume-path="+devicePath)
+		} else {
+			args = append(args, "--volume-path="+mountPath+"/"+azure.Spec.VolumePath)
+		}
+		return args, nil
 	}
-	args := []string{"--mode=populate"}
-	if rawBlock {
-		args = append(args, "--volume-path="+devicePath)
-	} else {
-		args = append(args, "--volume-path="+mountPath+"/"+azure.Spec.VolumePath)
-	}
-	args = append(args, "--blob-prefix="+azure.Spec.BlobPrefix)
-	return args, nil
 }
