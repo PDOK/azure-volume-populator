@@ -33,7 +33,7 @@ type AzureVolumePopulatorSpec struct {
 }
 
 // BlobDownloadOptions advanced settings to tune download behavior from Azure Blob Storage
-// +kubebuilder:object:root=true
+// +kubebuilder:object:generate=true
 type BlobDownloadOptions struct {
 	// The maximum chunk size used for downloading a blob. Defaults to 4MiB
 	// +optional
