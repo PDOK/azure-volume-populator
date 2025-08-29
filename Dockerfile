@@ -12,7 +12,8 @@ ENV GOOS=linux
 # Retrieve application dependencies.
 # This allows the container build to reuse cached dependencies.
 COPY go.* ./
-RUN go mod download
+RUN go mod download all && \
+    go generate -v ./...
 
 # Copy local code to the container image.
 COPY . ./
