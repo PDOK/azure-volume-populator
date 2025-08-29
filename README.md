@@ -27,7 +27,7 @@ Using Go:
 ```bash
 go mod download
 go generate ./...
-go build
+go build -o azure-volume-populator cmd/main.go
 ```
 
 ## Run
