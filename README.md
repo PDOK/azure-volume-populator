@@ -32,13 +32,13 @@ go build -o azure-volume-populator cmd/main.go
 
 ## Run
 
-In controller mode:
+In controller mode (example in bash, but you would usually do this in a Kubernetes Deployment):
 
 ```bash
 export MODE=controller
 export AZURE_STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=...;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net"
 
-./bin/azure-volume-populator \
+./azure-volume-populator \
   --mode=controller \
   --azure-storage-connection-string="$AZURE_STORAGE_CONNECTION_STRING" \
   --image-name="docker.io/pdok/azure-volume-populator:latest" \
@@ -47,13 +47,13 @@ export AZURE_STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=...;AccountName
   --metrics-path="/metrics"
 ```
 
-In populate mode:
+In populate mode (example in bash, but usually this will be done by the above Kubernetes controller):
 
 ```bash
 export MODE=populate
 export AZURE_STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=...;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net"
 
-./bin/azure-volume-populator \
+./azure-volume-populator \
   --mode=populate \
   --azure-storage-connection-string="$AZURE_STORAGE_CONNECTION_STRING" \
   --blob-prefix="mycontainer/folder/subfolder" \
