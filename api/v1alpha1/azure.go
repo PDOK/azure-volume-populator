@@ -25,7 +25,7 @@ type AzureVolumePopulatorSpec struct {
 
 	// Advanced settings to tune download behavior from Azure Blob Storage
 	// +optional
-	BlobDownloadOptions BlobDownloadOptions `json:"blobDownloadOptions"`
+	BlobDownloadOptions *BlobDownloadOptions `json:"blobDownloadOptions"`
 
 	// Destination path on the volume
 	// +kubebuilder:validation:Required

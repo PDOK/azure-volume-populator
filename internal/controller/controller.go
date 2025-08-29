@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"strconv"
+
 	populatorMachinery "github.com/kubernetes-csi/lib-volume-populator/populator-machinery"
 	"github.com/pdok/azure-volume-populator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -41,6 +43,10 @@ func makePopulatorArgs(azConnectionString string) func(bool, *unstructured.Unstr
 		args := []string{"--mode=populate"}
 		args = append(args, "--azure-storage-connection-string="+azConnectionString)
 		args = append(args, "--blob-prefix="+azure.Spec.BlobPrefix)
+		if azure.Spec.BlobDownloadOptions != nil {
+			args = append(args, "--blob-block-size="+strconv.Itoa(azure.Spec.BlobDownloadOptions.BlockSize))
+			args = append(args, "--blob-concurrency="+strconv.Itoa(azure.Spec.BlobDownloadOptions.Concurrency))
+		}
 		if rawBlock {
 			args = append(args, "--volume-path="+devicePath)
 		} else {

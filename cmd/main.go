@@ -14,6 +14,8 @@ func main() {
 		mode               string
 		azConnectionString string
 		blobPrefix         string
+		blobBlockSize      int
+		blobConcurrency    int
 		volumePath         string
 		httpEndpoint       string
 		metricsPath        string
@@ -27,7 +29,9 @@ func main() {
 	flag.StringVar(&mode, "mode", "", "Mode to run in (controller, populate)")
 	// Populate args
 	flag.StringVar(&azConnectionString, "azure-storage-connection-string", "", "connection string to access data in an Azure Storage Account.")
-	flag.StringVar(&blobPrefix, "blob-prefix", "", "Copy all Azure blobs with this prefix.")
+	flag.StringVar(&blobPrefix, "blob-prefix", "", "Copy all Azure blobs with this prefix (can be multiple files). Should take the form of a container name + path within container e.g. 'mycontainer/firstfolder/secondfolder/etc'.")
+	flag.IntVar(&blobBlockSize, "blob-block-size", 4*1024*1024, "Block size to use when downloading from Azure Blob Storage.")
+	flag.IntVar(&blobConcurrency, "blob-concurrency", 10, "Number of blobs to download concurrently.")
 	flag.StringVar(&volumePath, "volume-path", "", "Destination path on the volume.")
 	// Controller args
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
@@ -51,7 +55,7 @@ func main() {
 	case "controller":
 		controller.Run(masterURL, kubeconfig, imageName, httpEndpoint, metricsPath, namespace, azConnectionString)
 	case "populate":
-		populator.Populate(azConnectionString, blobPrefix, volumePath)
+		populator.Populate(azConnectionString, blobPrefix, blobBlockSize, blobConcurrency, volumePath)
 	default:
 		klog.Fatalf("Invalid mode: %s", mode)
 	}
