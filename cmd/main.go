@@ -36,7 +36,7 @@ var (
 		&cli.UintFlag{
 			Name:  "blob-concurrency",
 			Usage: "Number of blobs to download concurrently.",
-			Value: 10,
+			Value: 5,
 		},
 		&cli.StringFlag{
 			Name:  "volume-path",
