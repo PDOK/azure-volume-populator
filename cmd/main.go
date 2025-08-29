@@ -1,62 +1,109 @@
 package main
 
 import (
-	"flag"
 	"os"
 
 	"github.com/pdok/azure-volume-populator/internal/controller"
 	"github.com/pdok/azure-volume-populator/internal/populator"
+	"github.com/urfave/cli/v2"
 	"k8s.io/klog/v2"
 )
 
+var (
+	cliFlags = []cli.Flag{
+		&cli.StringFlag{
+			Name:     "mode",
+			Usage:    "Mode to run in (controller, populate)",
+			EnvVars:  []string{"MODE"},
+			Required: true,
+		},
+		&cli.StringFlag{
+			Name:     "azure-storage-connection-string",
+			Usage:    "connection string to access data in an Azure Storage Account.",
+			EnvVars:  []string{"AZURE_STORAGE_CONNECTION_STRING"},
+			Required: true,
+		},
+		// Populate args
+		&cli.StringFlag{
+			Name:  "blob-prefix",
+			Usage: "Copy all Azure blobs with this prefix (can be multiple files). Should take the form of a container name + path within container e.g. 'mycontainer/firstfolder/secondfolder/etc'.",
+		},
+		&cli.UintFlag{
+			Name:  "blob-block-size",
+			Usage: "Block size to use when downloading from Azure Blob Storage.",
+			Value: 4 * 1024 * 1024,
+		},
+		&cli.UintFlag{
+			Name:  "blob-concurrency",
+			Usage: "Number of blobs to download concurrently.",
+			Value: 10,
+		},
+		&cli.StringFlag{
+			Name:  "volume-path",
+			Usage: "Destination path on the volume.",
+		},
+		// Controller args
+		&cli.StringFlag{
+			Name:  "kubeconfig",
+			Usage: "Path to a kubeconfig. Only required if out-of-cluster.",
+		},
+		&cli.StringFlag{
+			Name:  "master",
+			Usage: "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.",
+		},
+		&cli.StringFlag{
+			Name:  "image-name",
+			Usage: "Image to use for populating.",
+		},
+		&cli.StringFlag{
+			Name:  "namespace",
+			Usage: "Namespace to deploy controller.",
+		},
+		// Metrics args
+		&cli.StringFlag{
+			Name:  "http-endpoint",
+			Usage: "The TCP network address where the HTTP server for diagnostics, including metrics and leader election health check, will listen (example: `:8080`). The default is empty string, which means the server is disabled.",
+		},
+		&cli.StringFlag{
+			Name:  "metrics-path",
+			Usage: "The HTTP path where prometheus metrics will be exposed. Default is `/metrics`.",
+			Value: "/metrics",
+		},
+	}
+)
+
 func main() {
-	var (
-		mode               string
-		azConnectionString string
-		blobPrefix         string
-		blobBlockSize      int
-		blobConcurrency    int
-		volumePath         string
-		httpEndpoint       string
-		metricsPath        string
-		masterURL          string
-		kubeconfig         string
-		imageName          string
-		namespace          string
-	)
-	klog.InitFlags(nil)
-	// Main arg
-	flag.StringVar(&mode, "mode", "", "Mode to run in (controller, populate)")
-	// Populate args
-	flag.StringVar(&azConnectionString, "azure-storage-connection-string", "", "connection string to access data in an Azure Storage Account.")
-	flag.StringVar(&blobPrefix, "blob-prefix", "", "Copy all Azure blobs with this prefix (can be multiple files). Should take the form of a container name + path within container e.g. 'mycontainer/firstfolder/secondfolder/etc'.")
-	flag.IntVar(&blobBlockSize, "blob-block-size", 4*1024*1024, "Block size to use when downloading from Azure Blob Storage.")
-	flag.IntVar(&blobConcurrency, "blob-concurrency", 10, "Number of blobs to download concurrently.")
-	flag.StringVar(&volumePath, "volume-path", "", "Destination path on the volume.")
-	// Controller args
-	flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
-	flag.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
-	flag.StringVar(&imageName, "image-name", "", "Image to use for populating.")
-	flag.StringVar(&namespace, "namespace", "", "Namespace to deploy controller.")
-	// Metrics args
-	flag.StringVar(&httpEndpoint, "http-endpoint", "", "The TCP network address where the HTTP server for diagnostics, including metrics and leader election health check, will listen (example: `:8080`). The default is empty string, which means the server is disabled.")
-	flag.StringVar(&metricsPath, "metrics-path", "/metrics", "The HTTP path where prometheus metrics will be exposed. Default is `/metrics`.")
+	app := &cli.App{
+		Name:  "azure-volume-populator",
+		Usage: "Run either as Kubernetes controller or in populate mode",
+		Flags: cliFlags,
+		Action: func(ctx *cli.Context) error {
+			mode := ctx.String("mode")
+			azConnectionString := ctx.String("azure-storage-connection-string")
+			blobPrefix := ctx.String("blob-prefix")
+			blobBlockSize := ctx.Uint("blob-block-size")
+			blobConcurrency := ctx.Uint("blob-concurrency")
+			volumePath := ctx.String("volume-path")
+			kubeconfig := ctx.String("kubeconfig")
+			masterURL := ctx.String("master")
+			imageName := ctx.String("image-name")
+			namespace := ctx.String("namespace")
+			httpEndpoint := ctx.String("http-endpoint")
+			metricsPath := ctx.String("metrics-path")
 
-	flag.Parse()
-
-	if azConnectionString == "" {
-		azConnectionString = os.Getenv("AZURE_STORAGE_CONNECTION_STRING")
+			switch mode {
+			case "controller":
+				controller.Run(masterURL, kubeconfig, imageName, httpEndpoint, metricsPath, namespace, azConnectionString)
+			case "populate":
+				populator.Populate(blobPrefix, volumePath, blobBlockSize, blobConcurrency, azConnectionString)
+			default:
+				klog.Fatalf("invalid mode: %s", mode)
+			}
+			return nil
+		},
 	}
 
-	if mode == "" {
-		klog.Fatalf("Missing required arg: --mode")
-	}
-	switch mode {
-	case "controller":
-		controller.Run(masterURL, kubeconfig, imageName, httpEndpoint, metricsPath, namespace, azConnectionString)
-	case "populate":
-		populator.Populate(azConnectionString, blobPrefix, blobBlockSize, blobConcurrency, volumePath)
-	default:
-		klog.Fatalf("Invalid mode: %s", mode)
+	if err := app.Run(os.Args); err != nil {
+		klog.Fatalf("application error: %v", err)
 	}
 }

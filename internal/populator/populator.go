@@ -10,7 +10,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-func Populate(blobPrefix, volumePath string, blockSize, concurrency int, azConnectionString string) {
+func Populate(blobPrefix, volumePath string, blockSize, concurrency uint, azConnectionString string) {
 	if azConnectionString == "" {
 		klog.Fatalf("Missing required arg --azure-storage-connection-string")
 	}
@@ -64,8 +64,8 @@ func Populate(blobPrefix, volumePath string, blockSize, concurrency int, azConne
 
 			// Download blob to file
 			if _, err = client.DownloadFile(context.Background(), containerName, *blob.Name, file, &azblob.DownloadFileOptions{
-				BlockSize:   int64(blockSize),
-				Concurrency: uint16(concurrency),
+				BlockSize:   int64(blockSize),    //nolint:gosec // no risk of overflow
+				Concurrency: uint16(concurrency), //nolint:gosec // no risk of overflow
 			}); err != nil {
 				klog.Fatalf("Download of blob '%s' failed during transfer: %v", *blob.Name, err)
 			}
