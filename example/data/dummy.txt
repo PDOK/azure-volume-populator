@@ -1,0 +1,2 @@
+This is an example file which is place on Azure Blob and
+downloaded by the Azure Volume Populator to a Kubernetes persistent volume.
