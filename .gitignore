@@ -6,3 +6,6 @@
 bin/
 
 azure-volume-populator
+
+example/kube/kubeconfig.yaml
+example/registry

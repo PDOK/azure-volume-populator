@@ -1,0 +1,91 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: azurevolumepopulator
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: azurevolumepopulator-account
+  namespace: hello
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: azurevolumepopulator-role
+rules:
+  - apiGroups: [""]
+    resources: [persistentvolumes]
+    verbs: [get, list, watch, patch]
+  - apiGroups: [""]
+    resources: [persistentvolumeclaims]
+    verbs: [get, list, watch, patch, create, delete]
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list, watch, create, delete]
+  - apiGroups: [""]
+    resources: [events]
+    verbs: [create]
+  - apiGroups: [storage.k8s.io]
+    resources: [storageclasses]
+    verbs: [get, list, watch]
+
+  - apiGroups: [azurevolumepopulator.volume.pdok.nl]
+    resources: [azurevolumepopulators]
+    verbs: [get, list, watch]
+  # (Alpha) Access to referencegrants is only needed when the CSI driver
+  # has the CrossNamespaceVolumeDataSource controller capability.
+  # In that case, lib-volume-populator requires "get", "list", "watch"
+  # permissions  for "referencegrants" on "gateway.networking.k8s.io".
+  #- apiGroups: ["gateway.networking.k8s.io"]
+  #  resources: ["referencegrants"]
+  #  verbs: ["get", "list", "watch"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: azurevolumepopulator-binding
+subjects:
+  - kind: ServiceAccount
+    name: azurevolumepopulator-account
+    namespace: azurevolumepopulator
+roleRef:
+  kind: ClusterRole
+  name: azurevolumepopulator-role
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: azurevolumepopulator
+  namespace: azurevolumepopulator
+spec:
+  selector:
+    matchLabels:
+      app: azurevolumepopulator
+  template:
+    metadata:
+      labels:
+        app: azurevolumepopulator
+    spec:
+      serviceAccount: azurevolumepopulator-account
+      containers:
+        - name: azurevolumepopulator
+          image: registry:5000/myapp:latest
+          imagePullPolicy: IfNotPresent
+          args:
+            - --mode=controller
+            - --image-name=registry:5000/myapp:latest
+            - --http-endpoint=:8080
+          ports:
+            - containerPort: 8080
+              name: http-endpoint
+              protocol: TCP
+---
+kind: VolumePopulator
+apiVersion: populator.storage.k8s.io/v1beta1
+metadata:
+  name: azurevolumepopulator
+sourceKind:
+  group: azurevolumepopulators.volume.pdok.nl
+  kind: AzureVolumePopulator
