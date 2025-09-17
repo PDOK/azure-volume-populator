@@ -51,10 +51,10 @@ services:
       interval: 1s
       retries: 30
 
-  registry:
+  local-registry:
     image: registry:2.7.1
     ports:
-      - "5500:5000"
+      - "5000:5000"
     volumes:
       - ./registry/local:/var/lib/registry
     networks:
@@ -91,7 +91,7 @@ services:
       timeout: 1s
       retries: 1000
     extra_hosts:
-      - "registry:172.20.20.16"
+      - "local-registry:172.20.20.16"
 
   dns:
     image: chenhw2/dnsproxy:latest
@@ -113,12 +113,12 @@ services:
     depends_on:
       kubernetes:
         condition: service_healthy
-      registry:
+      local-registry:
         condition: service_started
     networks:
       - kubernetes-net
     extra_hosts:
-      - "registry:172.20.20.16"
+      - "local-registry:172.20.20.16"
     command: >
       sh -c "
         set -ex
@@ -133,13 +133,16 @@ services:
 
         echo 'Applying Azure Volume Populator CRD'
         kubectl apply -f /app/config/crd/volume.pdok.nl_azurevolumepopulators.yaml
-        docker build -t registry:5500/myapp:latest app/
+        docker build -t local-registry:5000/myapp:1.0.0 app/
 
         echo 'Build complete. Pushing image to registry'
-        docker push registry:5500/myapp:latest
+        docker push local-registry:5000/myapp:1.0.0
 
         echo 'Push complete. Applying Kubernetes deployment'
         kubectl apply -f /manifests/deployment.yaml
+
+        echo 'Waiting for pod azurevolumepopulator to be ready...'
+        kubectl wait --for=condition=Ready pod -l app=azurevolumepopulator -n azurevolumepopulator --timeout=60s
 
         echo 'Test successful!'
       "

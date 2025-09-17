@@ -8,6 +8,9 @@ kind: ServiceAccount
 metadata:
   name: azurevolumepopulator-account
   namespace: azurevolumepopulator
+#imagePullSecrets:
+#  - name: docker.io
+#  - name: local-registry
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
@@ -30,7 +33,7 @@ rules:
     resources: [storageclasses]
     verbs: [get, list, watch]
 
-  - apiGroups: [azurevolumepopulator.volume.pdok.nl]
+  - apiGroups: [volume.pdok.nl]
     resources: [azurevolumepopulators]
     verbs: [get, list, watch]
   # (Alpha) Access to referencegrants is only needed when the CSI driver
@@ -68,15 +71,16 @@ spec:
       labels:
         app: azurevolumepopulator
     spec:
-      serviceAccount: azurevolumepopulator-account
+      serviceAccountName: azurevolumepopulator-account
       containers:
         - name: azurevolumepopulator
-          image: registry:5500/myapp:latest
+          image: local-registry:5000/myapp:1.0.0
           imagePullPolicy: IfNotPresent
           args:
             - --mode=controller
-            - --image-name=registry:5500/myapp:latest
+            - --image-name=local-registry:5000/myapp:1.0.0
             - --http-endpoint=:8080
+            - --azure-storage-connection-string=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=;BlobEndpoint=http://172.20.20.14:10000/devstoreaccount1;
           ports:
             - containerPort: 8080
               name: http-endpoint
@@ -87,5 +91,5 @@ apiVersion: populator.storage.k8s.io/v1beta1
 metadata:
   name: azurevolumepopulator
 sourceKind:
-  group: azurevolumepopulators.volume.pdok.nl
+  group: volume.pdok.nl
   kind: AzureVolumePopulator
