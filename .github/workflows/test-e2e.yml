@@ -11,6 +11,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Add hosts entry
+        run: echo "127.0.0.1 local-registry" | sudo tee -a /etc/hosts
+
       # The provided example doubles as an end-to-end test.
       - name: E2E Test
         run: |
