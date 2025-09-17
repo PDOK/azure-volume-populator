@@ -1,0 +1,15 @@
+---
+name: e2e-test
+on:
+  pull_request:
+jobs:
+  end-to-end-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The provided example doubles as an end-to-end test.
+      - name: E2E Test
+        run: |
+          docker compose -f ./example/docker-compose.yaml up
+            --exit-code-from e2e-test
