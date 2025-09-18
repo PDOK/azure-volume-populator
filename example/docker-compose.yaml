@@ -62,7 +62,7 @@ services:
         ipv4_address: 172.20.20.16
 
   kubernetes:
-    image: rancher/k3s:v1.31.5-k3s1
+    image: rancher/k3s:v1.33.4-k3s1
     command:
       - server
       - --disable=traefik
@@ -138,11 +138,14 @@ services:
         echo 'Build complete. Pushing image to registry'
         docker push local-registry:5000/myapp:1.0.0
 
-        echo 'Push complete. Applying Kubernetes deployment'
-        kubectl apply -f /manifests/deployment.yaml
+        echo 'Push complete. Applying Kubernetes deployment for controller'
+        kubectl apply -f /manifests/controller.yaml
 
         echo 'Waiting for pod azurevolumepopulator to be ready...'
         kubectl wait --for=condition=Ready pod -l app=azurevolumepopulator -n azurevolumepopulator --timeout=60s
+
+        echo 'Push complete. Applying Kubernetes deployment for populator'
+        kubectl apply -f /manifests/populate.yaml
 
         echo 'Test successful!'
       "

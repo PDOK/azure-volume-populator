@@ -19,23 +19,26 @@ metadata:
 rules:
   - apiGroups: [""]
     resources: [persistentvolumes]
-    verbs: [get, list, watch, patch]
+    verbs: [get, list, watch, create, update, patch]
   - apiGroups: [""]
     resources: [persistentvolumeclaims]
-    verbs: [get, list, watch, patch, create, delete]
+    verbs: [create, delete, get, list, patch, update, watch]
+  - apiGroups: [""]
+    resources: [persistentvolumeclaims/status]
+    verbs: [patch, update]
   - apiGroups: [""]
     resources: [pods]
     verbs: [get, list, watch, create, delete]
   - apiGroups: [""]
     resources: [events]
-    verbs: [create]
+    verbs: [create, patch, update, get, list]
   - apiGroups: [storage.k8s.io]
     resources: [storageclasses]
     verbs: [get, list, watch]
 
   - apiGroups: [volume.pdok.nl]
     resources: [azurevolumepopulators]
-    verbs: [get, list, watch]
+    verbs: [get, list, watch, create, update, patch]
   # (Alpha) Access to referencegrants is only needed when the CSI driver
   # has the CrossNamespaceVolumeDataSource controller capability.
   # In that case, lib-volume-populator requires "get", "list", "watch"
