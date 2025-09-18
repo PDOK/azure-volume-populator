@@ -40,7 +40,7 @@ spec:
         - name: example-container
           image: busybox:latest
           command:
-            - echo "ideally we would check here if dummy.txt is present on the volume, but the populator doesn't seem to work with k3s local-path provisioner".
+            - echo "ideally we would check here if dummy.txt is present on the volume, but the populator doesn't seem to work with k3s local-path provisioner"
           volumeMounts:
             - name: vol
               mountPath: /mnt
