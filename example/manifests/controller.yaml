@@ -77,11 +77,11 @@ spec:
       serviceAccountName: azurevolumepopulator-account
       containers:
         - name: azurevolumepopulator
-          image: local-registry:5000/myapp:1.0.0
+          image: local-registry:5000/avp:1.0.0
           imagePullPolicy: IfNotPresent
           args:
             - --mode=controller
-            - --image-name=local-registry:5000/myapp:1.0.0
+            - --image-name=local-registry:5000/avp:1.0.0
             - --http-endpoint=:8080
             - --azure-storage-connection-string=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=;BlobEndpoint=http://172.20.20.14:10000/devstoreaccount1;
           ports:

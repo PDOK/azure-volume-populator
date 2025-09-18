@@ -133,10 +133,10 @@ services:
 
         echo 'Applying Azure Volume Populator CRD'
         kubectl apply -f /app/config/crd/volume.pdok.nl_azurevolumepopulators.yaml
-        docker build -t local-registry:5000/myapp:1.0.0 app/
+        docker build -t local-registry:5000/avp:1.0.0 app/
 
         echo 'Build complete. Pushing image to registry'
-        docker push local-registry:5000/myapp:1.0.0
+        docker push local-registry:5000/avp:1.0.0
 
         echo 'Push complete. Applying Kubernetes deployment for controller'
         kubectl apply -f /manifests/controller.yaml
