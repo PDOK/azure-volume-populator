@@ -1,0 +1,51 @@
+---
+apiVersion: volume.pdok.nl/v1alpha1
+kind: AzureVolumePopulator
+metadata:
+  name: example-volume-populator
+  namespace: azurevolumepopulator
+spec:
+  blobPrefix: example/dummy.txt
+  volumePath: /var/dummy.txt
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: example-pvc
+  namespace: azurevolumepopulator
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Mi
+  dataSourceRef:
+    apiGroup: volume.pdok.nl
+    kind: AzureVolumePopulator
+    name: example-volume-populator
+  volumeMode: Filesystem
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: example-job
+  namespace: azurevolumepopulator
+spec:
+  template:
+    metadata:
+      labels:
+        app: example-job
+    spec:
+      containers:
+        - name: example-container
+          image: busybox:latest
+          command:
+            - echo "ideally we would check here if dummy.txt is present on the volume, but the populator doesn't seem to work with k3s local-path provisioner"
+          volumeMounts:
+            - name: vol
+              mountPath: /mnt
+      restartPolicy: Never
+      volumes:
+        - name: vol
+          persistentVolumeClaim:
+            claimName: example-pvc

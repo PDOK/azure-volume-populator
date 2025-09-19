@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: azurevolumepopulator
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: azurevolumepopulator-account
+  namespace: azurevolumepopulator
+#imagePullSecrets:
+#  - name: docker.io
+#  - name: local-registry
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: azurevolumepopulator-role
+rules:
+  - apiGroups: [""]
+    resources: [persistentvolumes]
+    verbs: [get, list, watch, create, update, patch]
+  - apiGroups: [""]
+    resources: [persistentvolumeclaims]
+    verbs: [create, delete, get, list, patch, update, watch]
+  - apiGroups: [""]
+    resources: [persistentvolumeclaims/status]
+    verbs: [patch, update]
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list, watch, create, delete]
+  - apiGroups: [""]
+    resources: [events]
+    verbs: [create, patch, update, get, list]
+  - apiGroups: [storage.k8s.io]
+    resources: [storageclasses]
+    verbs: [get, list, watch]
+
+  - apiGroups: [volume.pdok.nl]
+    resources: [azurevolumepopulators]
+    verbs: [get, list, watch, create, update, patch]
+  # (Alpha) Access to referencegrants is only needed when the CSI driver
+  # has the CrossNamespaceVolumeDataSource controller capability.
+  # In that case, lib-volume-populator requires "get", "list", "watch"
+  # permissions  for "referencegrants" on "gateway.networking.k8s.io".
+  #- apiGroups: ["gateway.networking.k8s.io"]
+  #  resources: ["referencegrants"]
+  #  verbs: ["get", "list", "watch"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: azurevolumepopulator-binding
+subjects:
+  - kind: ServiceAccount
+    name: azurevolumepopulator-account
+    namespace: azurevolumepopulator
+roleRef:
+  kind: ClusterRole
+  name: azurevolumepopulator-role
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: azurevolumepopulator
+  namespace: azurevolumepopulator
+spec:
+  selector:
+    matchLabels:
+      app: azurevolumepopulator
+  template:
+    metadata:
+      labels:
+        app: azurevolumepopulator
+    spec:
+      serviceAccountName: azurevolumepopulator-account
+      containers:
+        - name: azurevolumepopulator
+          image: local-registry:5000/avp:1.0.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - --mode=controller
+            - --image-name=local-registry:5000/avp:1.0.0
+            - --http-endpoint=:8080
+            - --azure-storage-connection-string=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=;BlobEndpoint=http://172.20.20.14:10000/devstoreaccount1;
+          ports:
+            - containerPort: 8080
+              name: http-endpoint
+              protocol: TCP
+---
+kind: VolumePopulator
+apiVersion: populator.storage.k8s.io/v1beta1
+metadata:
+  name: azurevolumepopulator
+sourceKind:
+  group: volume.pdok.nl
+  kind: AzureVolumePopulator

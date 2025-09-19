@@ -1,0 +1,151 @@
+---
+networks:
+  kubernetes-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.20.0/24
+          gateway: 172.20.20.1
+
+services:
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.29.0
+    container_name: "azurite"
+    hostname: azurite
+    command: "azurite-blob --blobHost 0.0.0.0 --blobPort 10000"
+    networks:
+      kubernetes-net:
+        ipv4_address: 172.20.20.14
+    ports:
+      - "10000:10000"
+    healthcheck:
+      test: nc 127.0.0.1 10000 -z
+      interval: 1s
+      retries: 30
+
+  azurite-seed:
+    image: rclone/rclone:1.65
+    depends_on:
+      azurite:
+        condition: service_healthy
+    volumes:
+      - ./:/examples
+    environment:
+      - RCLONE_CONFIG_BLOBS_TYPE=azureblob
+      - RCLONE_CONFIG_BLOBS_ENDPOINT=http://172.20.20.14:10000/devstoreaccount1
+      - RCLONE_CONFIG_BLOBS_USE_EMULATOR=true
+    entrypoint:
+      - sh
+      - -c
+      - |
+        echo "create azure container"
+        rclone mkdir blobs:example
+        echo "upload dummy file"
+        rclone copy /example/data/ blobs:example
+        touch /tmp/finished
+        echo "done"
+        sleep 300 # because docker-compose --exit-code-from implies --abort-on-container-exit
+    healthcheck:
+      test: stat /tmp/finished
+      interval: 1s
+      retries: 30
+
+  local-registry:
+    image: registry:2.7.1
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./registry/local:/var/lib/registry
+    networks:
+      kubernetes-net:
+        ipv4_address: 172.20.20.16
+
+  kubernetes:
+    image: rancher/k3s:v1.33.4-k3s1
+    command:
+      - server
+      - --disable=traefik
+      - --resolv-conf=/kube/container-resolv.conf
+    ports:
+      - "6443:6443"
+      - "32788:80" # Forward the traefik-ingress nodeport
+      - "32789:8080" # Forward the traefik-ingress dashboard port
+    privileged: true
+    depends_on:
+      azurite:
+        condition: service_healthy
+    environment:
+      - K3S_TOKEN=test
+      - K3S_KUBECONFIG_OUTPUT=/kube/kubeconfig.yaml
+      - K3S_KUBECONFIG_MODE=666
+    volumes:
+      - ./kube:/kube
+      - ./kube/registries.yaml:/etc/rancher/k3s/registries.yaml
+    networks:
+      kubernetes-net:
+        ipv4_address: 172.20.20.10
+    healthcheck:
+      test: ["CMD-SHELL", "kubectl get pods"]
+      interval: 1s
+      timeout: 1s
+      retries: 1000
+    extra_hosts:
+      - "local-registry:172.20.20.16"
+
+  dns:
+    image: chenhw2/dnsproxy:latest
+    command: "/usr/bin/dnsproxy -u 127.0.0.11:53"
+    networks:
+      kubernetes-net:
+        ipv4_address: 172.20.20.100
+
+  # Container to build, push, and deploy the volume populator to Kubernetes
+  e2e-test:
+    build: ./builder  # Use a custom image of Docker (DinD) with kubectl
+    volumes:
+      - ../:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./kube:/root/.kube
+      - ./manifests:/manifests
+    environment:
+      - KUBECONFIG=/root/.kube/kubeconfig.yaml
+    depends_on:
+      kubernetes:
+        condition: service_healthy
+      local-registry:
+        condition: service_started
+    networks:
+      - kubernetes-net
+    extra_hosts:
+      - "local-registry:172.20.20.16"
+    command: >
+      sh -c "
+        set -ex
+
+        echo 'Fix kubeconfig API server URL...'
+        sed -i -e 's/127.0.0.1/kubernetes/g' /root/.kube/kubeconfig.yaml
+
+        echo 'Applying CRDs'
+        kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/volume-data-source-validator/v1.0.1/client/config/crd/populator.storage.k8s.io_volumepopulators.yaml
+        kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/volume-data-source-validator/v1.0.1/deploy/kubernetes/rbac-data-source-validator.yaml
+        kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/volume-data-source-validator/v1.0.1/deploy/kubernetes/setup-data-source-validator.yaml
+
+        echo 'Applying Azure Volume Populator CRD'
+        kubectl apply -f /app/config/crd/volume.pdok.nl_azurevolumepopulators.yaml
+        docker build -t local-registry:5000/avp:1.0.0 app/
+
+        echo 'Build complete. Pushing image to registry'
+        docker push local-registry:5000/avp:1.0.0
+
+        echo 'Push complete. Applying Kubernetes deployment for controller'
+        kubectl apply -f /manifests/controller.yaml
+
+        echo 'Waiting for pod azurevolumepopulator to be ready...'
+        kubectl wait --for=condition=Ready pod -l app=azurevolumepopulator -n azurevolumepopulator --timeout=60s
+
+        echo 'Push complete. Applying Kubernetes deployment for populator'
+        kubectl apply -f /manifests/populate.yaml
+
+        echo 'Test successful!'
+      "
