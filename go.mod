@@ -8,6 +8,7 @@ require (
 	github.com/urfave/cli/v2 v2.27.7
 	k8s.io/apimachinery v0.33.4
 	k8s.io/klog/v2 v2.130.1
+	sigs.k8s.io/controller-runtime v0.18.0
 )
 
 require (
