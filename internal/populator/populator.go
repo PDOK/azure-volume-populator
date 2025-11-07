@@ -59,9 +59,6 @@ func Populate(blobPrefix, volumePath string, blockSize, concurrency uint, azConn
 			if err != nil {
 				klog.Fatalf("Download of blob '%s' failed: cannot create file: %v", *blob.Name, err)
 			}
-			if err = file.Close(); err != nil {
-				klog.Fatalf("Download of blob '%s' failed: cannot close file: %v", *blob.Name, err)
-			}
 
 			// Download blob to file
 			if _, err = client.NewBlockBlobClient(*blob.Name).DownloadFile(context.Background(), file, &azblob.DownloadFileOptions{
@@ -70,6 +67,9 @@ func Populate(blobPrefix, volumePath string, blockSize, concurrency uint, azConn
 			}); err != nil {
 				klog.Fatalf("Download of blob '%s' failed during transfer: %v", *blob.Name, err)
 			}
+
+			// Close file
+			_ = file.Close()
 		}
 	}
 }
