@@ -36,7 +36,4 @@ ENV PATH=/
 
 COPY --from=build-env /azure-volume-populator /
 
-# Run as non-root
-USER 65532:65532
-
 ENTRYPOINT ["/azure-volume-populator"]
