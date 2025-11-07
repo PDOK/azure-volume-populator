@@ -22,7 +22,7 @@ COPY . ./
 RUN go build  -ldflags '-w -s' -a -installsuffix cgo -o /azure-volume-populator github.com/pdok/azure-volume-populator/cmd/
 
 # Final image
-FROM gcr.io/distroless/static:nonroot
+FROM docker.io/debian:bookworm-slim
 EXPOSE 8080
 
 WORKDIR /
