@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 	"k8s.io/klog/v2"
 )
 
@@ -21,14 +22,14 @@ func Populate(blobPrefix, volumePath string, blockSize, concurrency uint, azConn
 		klog.Fatalf("Missing required arg --volume-path")
 	}
 
-	client, err := azblob.NewClientFromConnectionString(azConnectionString, nil)
+	containerName, blobPrefixWithoutContainerName := getContainerNameAndPath(blobPrefix)
+
+	client, err := container.NewClientFromConnectionString(azConnectionString, containerName, nil)
 	if err != nil {
 		klog.Fatalf("Failed to create client: %v", err)
 	}
 
-	containerName, blobPrefixWithoutContainerName := getContainerNameAndPath(blobPrefix)
-
-	pager := client.NewListBlobsFlatPager(containerName, &azblob.ListBlobsFlatOptions{
+	pager := client.NewListBlobsFlatPager(&azblob.ListBlobsFlatOptions{
 		Include: azblob.ListBlobsInclude{
 			Snapshots: false,
 			Versions:  false,
@@ -63,7 +64,7 @@ func Populate(blobPrefix, volumePath string, blockSize, concurrency uint, azConn
 			}
 
 			// Download blob to file
-			if _, err = client.DownloadFile(context.Background(), containerName, *blob.Name, file, &azblob.DownloadFileOptions{
+			if _, err = client.NewBlockBlobClient(*blob.Name).DownloadFile(context.Background(), file, &azblob.DownloadFileOptions{
 				BlockSize:   int64(blockSize),    //nolint:gosec // no risk of overflow
 				Concurrency: uint16(concurrency), //nolint:gosec // no risk of overflow
 			}); err != nil {
