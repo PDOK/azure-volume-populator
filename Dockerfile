@@ -25,6 +25,12 @@ RUN go build  -ldflags '-w -s' -a -installsuffix cgo -o /azure-volume-populator 
 FROM docker.io/debian:bookworm-slim
 EXPOSE 8080
 
+RUN set -eux && \
+    apt-get update && \
+    apt-get install --no-install-recommends -y \
+      ca-certificates=* && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /
 ENV PATH=/
 
