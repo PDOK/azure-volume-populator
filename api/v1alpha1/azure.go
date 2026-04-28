@@ -8,7 +8,7 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 // AzureVolumePopulator is the Schema for the AzureVolumePopulatorSpec
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:categories=pdok
+// +kubebuilder:resource:categories=pdok,shortName=avp
 type AzureVolumePopulator struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
