@@ -1,4 +1,4 @@
-FROM golang:1.25-bookworm AS build-env
+FROM golang:1.26-bookworm AS build-env
 
 # Create and change to the app directory.
 WORKDIR /app
