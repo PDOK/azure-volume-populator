@@ -1,6 +1,6 @@
 module github.com/pdok/azure-volume-populator
 
-go 1.24.5
+go 1.25.10
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.2
